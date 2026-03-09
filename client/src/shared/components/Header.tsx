@@ -1,12 +1,51 @@
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { useMarketStore } from "@/store";
 import { useUIStore } from "@/store";
+import { BASE_URL, getAuthHeaders } from "@/services/apis/config";
+import axios from "axios";
 
 export const Header = memo(function Header() {
   const isConnected = useMarketStore((s) => s.isConnected);
   const tickCount   = useMarketStore((s) => s.tickCount);
   const activeTab   = useUIStore((s) => s.activeTab);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
+
+ const [isMarketOpen, setIsMarketOpen] = useState(false);
+
+  useEffect(() => {
+    // Header.tsx
+const fetchMarketStatus = async () => {
+  try {
+    const token = localStorage.getItem('bearer_token');
+    
+    // FIX 1: Correct URL Path (Matching your Postman screenshot)
+    // FIX 2: Correct Axios POST syntax -> axios.post(url, data, config)
+    const response = await axios.post(
+      `${BASE_URL}/v2/api/stocks/market-status`, 
+      {}, // Empty body is required as the 2nd argument for POST
+      { headers: getAuthHeaders(token || "") } // Headers must be the 3rd argument
+    );
+
+    console.log("MARKET STATUS DATA:", response.data);
+    
+    // FIX 3: Robust status check
+    const marketArray = response.data?.market_status;
+    if (Array.isArray(marketArray) && marketArray.length > 0) {
+      const status = marketArray[0].marketStatus || "";
+      setIsMarketOpen(status.toLowerCase().includes("open"));
+    }
+  } catch (err) {
+    console.error("Market API Error", err);
+  }
+};
+
+    fetchMarketStatus();
+    const interval = setInterval(fetchMarketStatus, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const statusLabel = !isConnected ? "OFFLINE" : isMarketOpen ? "LIVE" : "CLOSED";
+  const statusColor = (isConnected && isMarketOpen) ? "var(--green)" : "var(--red)";
 
   const tabs: Array<{ id: typeof activeTab; label: string }> = [
     { id: "dashboard",  label: "Market" },
@@ -16,7 +55,7 @@ export const Header = memo(function Header() {
   ];
 
   return (
-    <header style={{
+    <header  style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
       padding: "0 24px", height: "52px",
       background: "var(--bg-panel)",
@@ -26,11 +65,11 @@ export const Header = memo(function Header() {
     }}>
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-        <span style={{
+        <span className="text-[#007dd0]" style={{
           fontFamily: "var(--font-display)", fontSize: "20px",
-          fontWeight: "800", color: "var(--green)", letterSpacing: "-0.5px",
+          fontWeight: "800", letterSpacing: "-0.5px",
         }}>
-          groww
+          OmneNest
         </span>
         <span style={{
           fontSize: "9px", color: "var(--text-muted)",
@@ -66,17 +105,17 @@ export const Header = memo(function Header() {
           </span>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-          <div className={isConnected ? "pulse" : ""} style={{
+          <div className={(isConnected && isMarketOpen) ? "pulse" : ""} style={{
             width: "7px", height: "7px", borderRadius: "50%",
-            background: isConnected ? "var(--green)" : "var(--red)",
-            boxShadow: isConnected ? "0 0 6px var(--green)" : "none",
+            background: statusColor,
+            boxShadow: isConnected && isMarketOpen ? `0 0 6px ${statusColor}` : "none",
           }} />
           <span style={{
             fontSize: "10px", fontWeight: "600", letterSpacing: "1px",
-            color: isConnected ? "var(--green)" : "var(--red)",
+            color: statusColor,
             fontFamily: "var(--font-mono)",
           }}>
-            {isConnected ? "LIVE" : "OFFLINE"}
+            {statusLabel}
           </span>
         </div>
       </div>

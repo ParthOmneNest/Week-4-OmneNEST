@@ -1,0 +1,1 @@
+export const getTimeStamp=():string => Date.now().toString();
