@@ -10,6 +10,16 @@ const config: Config = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|svg)$': '<rootDir>/__mocks__/fileMock.ts',
   },
+    collectCoverage: true,
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov'],
+  // Optional: prevent coverage from checking node_modules or dist
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.test.{ts,tsx}',
+    '!src/main.tsx',
+    '!src/vite-env.d.ts',
+  ],
   transform: {
     '^.+\\.(ts|tsx)$': [
       'ts-jest',
