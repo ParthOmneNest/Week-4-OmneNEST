@@ -34,7 +34,7 @@ export const DashboardHeader = memo(function DashboardHeader() {
           { headers: getAuthHeaders(token) }
         );
         
-        // Handle both object and array response formats
+        
         const marketData = statusRes.data?.market_status;
         const status = (Array.isArray(marketData) ? marketData[0]?.marketStatus : marketData?.marketStatus) || "";
         setIsMarketOpen(status.toLowerCase().includes("open"));
@@ -49,6 +49,18 @@ export const DashboardHeader = memo(function DashboardHeader() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+  const handleOnline = () => setIsConnected(true);
+  const handleOffline = () => setIsConnected(false);
+
+  window.addEventListener("online", handleOnline);
+  window.addEventListener("offline", handleOffline);
+
+  return () => {
+    window.removeEventListener("online", handleOnline);
+    window.removeEventListener("offline", handleOffline);
+  };
+}, []);
   const getErrorMessage = () => {
     if (errorStatus === 412) return "SESSION AUTH REQUIRED";
     if (errorStatus === 404) return "CONFIG NOT FOUND";
@@ -77,7 +89,7 @@ export const DashboardHeader = memo(function DashboardHeader() {
           features.map((f, index) => {
             const id = f.name.toLowerCase().replace(/\s+/g, "-");
             const isWatchlist = f.name.toLowerCase().includes("watchlist");
-            const isActive = activeTab === id || (isWatchlist && activeTab === "watchlist2" as any);
+            const isActive = activeTab === id || (isWatchlist && activeTab === "watchlist");
 
             return (
               <button
