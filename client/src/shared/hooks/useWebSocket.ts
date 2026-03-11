@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useMarketStore } from "@/store";
-import { parseMessage } from "@/services/websocket/messageParser";
+import { parseRawFrame } from "@/services/websocket/messageParser";
 import {
   getReconnectDelay,
   PING_INTERVAL_MS,
@@ -46,25 +46,37 @@ export function useWebSocket() {
       startHeartbeat(ws);
     };
 
-    ws.onmessage = (event: MessageEvent) => {
-      const msg = parseMessage(event.data as string);
-      if (!msg) return;
+   ws.onmessage = (event: MessageEvent) => {
+  // 1. Parse the frame (returns unknown)
+  const msg = parseRawFrame(event.data as string);
+  
+  // 2. Add a check and a type cast
+  if (!msg || typeof msg !== "object") return;
+  
+  // Cast to 'any' for quick fix or a specific interface for safety
+  const data = msg as any; 
 
-      if (msg.type === "PONG") {
-        if (pongTimer.current) { clearTimeout(pongTimer.current); pongTimer.current = null; }
-        addEvent("PONG received", "ping");
-        return;
-      }
-      if (msg.type === "STOCK_UPDATE") {
-        setStock(msg.stock);
-        addEvent(`${msg.stock.symbol} → ₹${msg.stock.price.toFixed(2)}`, "price");
-        return;
-      }
-      if (msg.type === "ORDER_BOOK") {
-        setOrderBook({ symbol: msg.symbol, bids: msg.bids, asks: msg.asks });
-        return;
-      }
-    };
+  if (data.type === "PONG") {
+    if (pongTimer.current) { 
+      clearTimeout(pongTimer.current); 
+      pongTimer.current = null; 
+    }
+    addEvent("PONG received", "ping");
+    return;
+  }
+  
+  if (data.type === "STOCK_UPDATE") {
+    setStock(data.stock);
+    addEvent(`${data.stock.symbol} → ₹${data.stock.price.toFixed(2)}`, "price");
+    return;
+  }
+  
+  if (data.type === "ORDER_BOOK") {
+    setOrderBook({ symbol: data.symbol, bids: data.bids, asks: data.asks });
+    return;
+  }
+};
+
 
     ws.onclose = () => {
       setConnected(false);
