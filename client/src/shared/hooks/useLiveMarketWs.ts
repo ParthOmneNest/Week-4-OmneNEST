@@ -37,7 +37,10 @@ export function useLiveMarketWs({ clientCode, extraSubscriptions }: Options): vo
     if (!clientCode) return;
  
     // Register listeners – returns unsubscribe functions
-    const unsubTick      = wsManager.onTick((tick) => tickRef.current(tick));
+    const unsubTick  = wsManager.onTick((tick) =>{
+      console.log("WS MANAGER RECEIVED TICK:", tick);
+      tickRef.current(tick);
+    }) 
     const unsubLifecycle = wsManager.onLifecycle((ev) => lifecycleRef.current(ev));
  
     // Subscribe to any extra tokens requested by this mount

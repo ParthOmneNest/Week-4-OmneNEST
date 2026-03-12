@@ -32,7 +32,7 @@ export const OtpForm = ({ username, onSuccess, onBack }:OtpProps) => {
 
  return (
     <div className="flex min-h-screen items-center justify-center bg-[#000000] px-4 font-sans text-white">
-      <div className="w-full max-w-[440px] rounded-[24px] bg-[#121212] p-10 shadow-2xl border border-white/5">
+      <div className="w-full max-w-110 rounded-3xl bg-[#121212] p-10 shadow-2xl border border-white/5">
         
         {/* Header Section */}
         <div className="mb-8 text-center">

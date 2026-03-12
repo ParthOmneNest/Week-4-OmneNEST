@@ -50,27 +50,57 @@ export function extractTicks(frame: unknown): RawTickFrame[] {
     return [f as unknown as RawTickFrame];
   }
 return [];}
-export function normaliseTick(raw: RawTickFrame): MarketTick {
-  const ltp    = raw.ltp ?? raw.indexValue ?? 0;
-  const close  = raw.close ?? ltp;
-  const change = raw.change ?? ltp - close;
-  const changePct = raw.changePercent ?? raw.indexChangePercent
-    ?? (close !== 0 ? (change / close) * 100 : 0);
+// export function normaliseTick(raw: RawTickFrame): MarketTick {
+//   const ltp    = raw.ltp ?? raw.indexValue ?? 0;
+//   const close  = raw.close ?? ltp;
+//   const change = raw.change ?? ltp - close;
+//   const changePct = raw.changePercent ?? raw.indexChangePercent
+//     ?? (close !== 0 ? (change / close) * 100 : 0);
  
+//   return {
+//     token:         raw.token       ?? "UNKNOWN",
+//     exchange:      raw.exchange    ?? "NSE_CM",
+//     ltp,
+//     volume:        raw.volume      ?? 0,
+//     bid:           raw.bid         ?? ltp,
+//     ask:           raw.ask         ?? ltp,
+//     open:          raw.open        ?? ltp,
+//     high:          raw.high        ?? ltp,
+//     low:           raw.low         ?? ltp,
+//     close,
+//     change:        parseFloat(change.toFixed(2)),
+//     changePercent: parseFloat(changePct.toFixed(2)),
+//     timestamp:     raw.timestamp   ?? Date.now(),
+//   };
+// }
+
+export function normaliseTick(raw: RawTickFrame | any): MarketTick {
+  // Check for 'ltp', then 'indexValue', then 'lp' (common in Omne), then 'v'
+  const rawLtp = raw.ltp ?? raw.indexValue ?? raw.lp ?? raw.v ?? 0;
+  
+   const ltp = rawLtp > 100000 && !rawLtp.toString().includes('.') 
+    ? rawLtp / 100 
+    : rawLtp;
+
+  const close  = raw.close ?? raw.pc ?? ltp; // 'pc' is common for Previous Close
+  const change = raw.change ?? raw.c ?? (ltp - close); // 'c' for change
+  
+  const changePct = raw.changePercent ?? raw.indexChangePercent ?? raw.cp
+    ?? (close !== 0 ? (change / close) * 100 : 0);
+
   return {
-    token:         raw.token       ?? "UNKNOWN",
-    exchange:      raw.exchange    ?? "NSE_CM",
-    ltp,
-    volume:        raw.volume      ?? 0,
+    token:         raw.token       ?? raw.tk ?? "UNKNOWN", // 'tk' for token
+    exchange:      raw.exchange    ?? raw.ex ?? "NSE_CM",  // 'ex' for exchange
+    ltp:parseFloat(Number(ltp).toFixed(2)),
+    volume:        raw.volume      ?? raw.v ?? 0,
     bid:           raw.bid         ?? ltp,
     ask:           raw.ask         ?? ltp,
     open:          raw.open        ?? ltp,
     high:          raw.high        ?? ltp,
     low:           raw.low         ?? ltp,
     close,
-    change:        parseFloat(change.toFixed(2)),
-    changePercent: parseFloat(changePct.toFixed(2)),
+    change:        parseFloat(Number(change).toFixed(2)),
+    changePercent: parseFloat(Number(changePct).toFixed(2)),
     timestamp:     raw.timestamp   ?? Date.now(),
   };
 }
-

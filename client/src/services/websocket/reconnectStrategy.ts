@@ -7,4 +7,4 @@ export function getReconnectDelay(attempt: number): number {
 
 export const PING_INTERVAL_MS  = 25_000;
 export const PONG_TIMEOUT_MS   = 5_000;
-export const SERVER_URL        = "ws://localhost:8080";
+export const SERVER_URL        = "wss://preprodapisix.omnenest.com/v1/ws?clientCode=AMITH1";

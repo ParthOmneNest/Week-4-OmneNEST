@@ -17,6 +17,7 @@ import { AllWatchList } from "./features/dashboard/AllWatchList";
 import { AuthContainer } from "./features/auth/AuthContainer";
 import { DashboardHeader } from "./shared/components/DashboardHeader";
 import { WsStatusBadge } from "@/shared/components/WsStatusBadge"; 
+import { Indices } from "./features/Indices/Indices";
 
 // Helper to extract clientCode for the Live WS
 function getClientCodeFromToken(token: string | null): string {
@@ -57,7 +58,7 @@ export default function App() {
     initializeApp();
   }, []);
 
-  useWebSocket();
+  // useWebSocket();
 
   useLiveMarketWs({
     clientCode,
@@ -72,6 +73,7 @@ export default function App() {
       case "portfolio":  return <PortfolioPage />;
       case "orderbook":  return <OrderBookPage />;
       case "watchlist":  return <AllWatchList />;
+      case "indices": return <Indices/>
       default:           return <DashboardPage />;
     }
   };

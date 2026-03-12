@@ -8,7 +8,7 @@ type UIState = {
   watchlist: WatchlistItem[];
   sidebarOpen: boolean;
   notifications: Notification[];
-  activeTab: "dashboard" | "portfolio" | "orderbook" | "watchlist";
+  activeTab: "dashboard" | "portfolio" | "orderbook" | "watchlist"| "indices";
 
   addToWatchlist: (symbol: string) => void;
   removeFromWatchlist: (symbol: string) => void;

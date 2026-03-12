@@ -28,7 +28,7 @@ export function getReconnectDelay(attempt: number): number {
 export const DEFAULT_SUBSCRIPTIONS = [
   {
     exchange: "NSE_CM" as const,
-    tokens: ["11377"], // HDFCBANK token example; extend as needed
+    tokens: ["Nifty 50"], // HDFCBANK token example; extend as needed
   },
 ];
  

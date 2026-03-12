@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useMarketStore } from "@/store";
-import { parseRawFrame } from "@/services/websocket/messageParser";
+import { 
+  parseRawFrame, 
+  extractTicks, 
+  normaliseTick, 
+  isPong 
+} from "@/services/websocket/messageParser"; // ★ Use these helpers
 import {
   getReconnectDelay,
   PING_INTERVAL_MS,
@@ -9,13 +14,13 @@ import {
 } from "@/services/websocket/reconnectStrategy";
 
 export function useWebSocket() {
-  const wsRef         = useRef<WebSocket | null>(null);
-  const retryRef      = useRef(0);
-  const retryTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pingTimer     = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pongTimer     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const retryRef = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pongTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { setStock, setOrderBook, setConnected, addEvent } = useMarketStore.getState();
+  const { setStock, setConnected, addEvent } = useMarketStore.getState();
 
   function stopHeartbeat() {
     if (pingTimer.current) { clearInterval(pingTimer.current); pingTimer.current = null; }
@@ -26,8 +31,10 @@ export function useWebSocket() {
     stopHeartbeat();
     pingTimer.current = setInterval(() => {
       if (ws.readyState !== WebSocket.OPEN) return;
-      ws.send(JSON.stringify({ type: "PING", ts: Date.now() }));
+      // ★ Change: Live server often expects "action" instead of "type"
+      ws.send(JSON.stringify({ action: "PING" })); 
       addEvent("PING sent", "ping");
+      
       pongTimer.current = setTimeout(() => {
         console.warn("[WS] PONG timeout — closing zombie socket");
         ws.close();
@@ -36,47 +43,60 @@ export function useWebSocket() {
   }
 
   function connect() {
+    // Ensure SERVER_URL is "wss://://omnenest.com" in your strategy file
     const ws = new WebSocket(SERVER_URL);
     wsRef.current = ws;
 
     ws.onopen = () => {
       setConnected(true);
       retryRef.current = 0;
-      addEvent("Connected to " + SERVER_URL, "connect");
+      addEvent("Connected to Live Market", "connect");
       startHeartbeat(ws);
+
+      // ★ NEW: You MUST send a SUBSCRIBE message to get data
+      const subMsg = {
+        action: "SUBSCRIBE",
+        mode: "LTP",
+        tokenList: [
+          { exchange: "NSE_CM", tokens: ["11377", "3045"] } // Add your tokens here
+        ]
+      };
+      ws.send(JSON.stringify(subMsg));
     };
 
-   ws.onmessage = (event: MessageEvent) => {
-  // 1. Parse the frame (returns unknown)
-  const msg = parseRawFrame(event.data as string);
-  
-  // 2. Add a check and a type cast
-  if (!msg || typeof msg !== "object") return;
-  
-  // Cast to 'any' for quick fix or a specific interface for safety
-  const data = msg as any; 
+    ws.onmessage = (event: MessageEvent) => {
+      const frame = parseRawFrame(event.data as string);
+      if (!frame) return;
 
-  if (data.type === "PONG") {
-    if (pongTimer.current) { 
-      clearTimeout(pongTimer.current); 
-      pongTimer.current = null; 
-    }
-    addEvent("PONG received", "ping");
-    return;
-  }
-  
-  if (data.type === "STOCK_UPDATE") {
-    setStock(data.stock);
-    addEvent(`${data.stock.symbol} → ₹${data.stock.price.toFixed(2)}`, "price");
-    return;
-  }
-  
-  if (data.type === "ORDER_BOOK") {
-    setOrderBook({ symbol: data.symbol, bids: data.bids, asks: data.asks });
-    return;
-  }
-};
+      // 1. Handle PONG using your helper
+      if (isPong(frame)) {
+        if (pongTimer.current) { 
+          clearTimeout(pongTimer.current); 
+          pongTimer.current = null; 
+        }
+        addEvent("PONG received", "ping");
+        return;
+      }
 
+      // 2. Extract and Map Live Ticks (Live data is usually an array)
+      const rawTicks = extractTicks(frame);
+      rawTicks.forEach((raw) => {
+        const tick = normaliseTick(raw);
+        
+        // Convert live tick fields to the "stock" object your UI expects
+        setStock({
+          symbol: tick.token, 
+          price: tick.ltp,
+          change: tick.change,
+          changePercent: tick.changePercent,
+          volume: tick.volume,
+          high: tick.high,
+          low: tick.low
+        } as any);
+        
+        addEvent(`${tick.token} → ₹${tick.ltp.toFixed(2)}`, "price");
+      });
+    };
 
     ws.onclose = () => {
       setConnected(false);
@@ -100,10 +120,8 @@ export function useWebSocket() {
         wsRef.current.close();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Expose send for components that need to subscribe to order books
   function send(data: object) {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(data));

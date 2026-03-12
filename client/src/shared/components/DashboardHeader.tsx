@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from "react";
-import { useUIStore } from "@/store"; 
+import { useUIStore } from "@/store";
 import { getDashboardConfig } from "@/services/apis/dashboard";
 import { BASE_URL, getAuthHeaders } from "@/services/apis/config";
 import axios from "axios";
@@ -12,14 +12,14 @@ export const DashboardHeader = memo(function DashboardHeader() {
   const [features, setFeatures] = useState<{ name: string }[]>([]);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [isMarketOpen, setIsMarketOpen] = useState(false);
-  
+
   // Manual connection state (Set to true by default for now, or link to your WS hook)
-  const [isConnected, setIsConnected] = useState(true); 
+  const [isConnected, setIsConnected] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem("bearer_token") || "";
-      
+
       try {
         // 1. Fetch Dashboard Config
         const configData = await getDashboardConfig();
@@ -33,8 +33,8 @@ export const DashboardHeader = memo(function DashboardHeader() {
           {},
           { headers: getAuthHeaders(token) }
         );
-        
-        
+
+
         const marketData = statusRes.data?.market_status;
         const status = (Array.isArray(marketData) ? marketData[0]?.marketStatus : marketData?.marketStatus) || "";
         setIsMarketOpen(status.toLowerCase().includes("open"));
@@ -50,17 +50,17 @@ export const DashboardHeader = memo(function DashboardHeader() {
   }, []);
 
   useEffect(() => {
-  const handleOnline = () => setIsConnected(true);
-  const handleOffline = () => setIsConnected(false);
+    const handleOnline = () => setIsConnected(true);
+    const handleOffline = () => setIsConnected(false);
 
-  window.addEventListener("online", handleOnline);
-  window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
-  return () => {
-    window.removeEventListener("online", handleOnline);
-    window.removeEventListener("offline", handleOffline);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
   const getErrorMessage = () => {
     if (errorStatus === 412) return "SESSION AUTH REQUIRED";
     if (errorStatus === 404) return "CONFIG NOT FOUND";
@@ -74,7 +74,7 @@ export const DashboardHeader = memo(function DashboardHeader() {
 
   return (
     <header className="flex h-10 shrink-0 items-center border-b border-(--border) bg-(--bg-panel) px-6">
-      
+
       <div className="flex items-center gap-3 pr-6 border-r border-(--border) h-full mr-6">
         <span className="font-display text-sm font-extrabold tracking-tight text-[#007dd0]">
           OmneNest
@@ -88,16 +88,24 @@ export const DashboardHeader = memo(function DashboardHeader() {
         {features.length > 0 ? (
           features.map((f, index) => {
             const id = f.name.toLowerCase().replace(/\s+/g, "-");
-            const isWatchlist = f.name.toLowerCase().includes("watchlist");
-            const isActive = activeTab === id || (isWatchlist && activeTab === "watchlist");
+            const isWatchlist = id.includes("watchlist");
+            const isIndices = id.includes("indices");
+
+            // Determine if this tab is active
+            const isActive = (isWatchlist && activeTab === "watchlist") ||
+              (isIndices && activeTab === "indices") ||
+              activeTab === id;
 
             return (
               <button
                 key={index}
-                onClick={() => isWatchlist ? setActiveTab("watchlist") : setActiveTab(id as any)}
-                className={`flex items-center gap-2 font-mono text-[10px] font-medium transition-all cursor-pointer ${
-                  isActive ? "text-(--text-primary)" : "text-(--text-muted) hover:text-(--text-primary)"
-                }`}
+                onClick={() => {
+                  if (isWatchlist) setActiveTab("watchlist");
+                  else if (isIndices) setActiveTab("indices");
+                  else setActiveTab(id as any);
+                }}
+                className={`flex items-center gap-2 font-mono text-[10px] font-medium transition-all cursor-pointer ${isActive ? "text-(--text-primary)" : "text-(--text-muted) hover:text-(--text-primary)"
+                  }`}
               >
                 <span className="text-green-500">•</span>
                 {f.name.toUpperCase()}

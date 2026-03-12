@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useMarketStore } from "@/store";
 import { OrderBookWidget } from "@/widgets/MarketDepth/OrderBook";
-import { formatPrice, getColor, getBgColor } from "@/shared/utils";
+import { formatPrice, getColor } from "@/shared/utils";
 import { Sparkline } from "@/widgets/ChartContainer/Sparkline";
 
 export function OrderBookPage() {

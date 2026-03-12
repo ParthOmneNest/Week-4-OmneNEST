@@ -1,5 +1,5 @@
 import { login } from "@/services/apis/login";
-import { preAuthHandshake } from "@/services/apis/preHandshake";
+import { preAuthHandshake } from "@/services/apis/prehandshake";
 import { useState } from "react";
 
 interface AuthProps {
@@ -9,7 +9,7 @@ interface AuthProps {
 }
 
 export const LoginForm = ({ username, setUsername, onNext }: AuthProps) => {
-    const [password, setPassword] = useState('abc@12345');
+    const [password, setPassword] = useState('Abc@12345');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
